@@ -1,7 +1,6 @@
 package xcore;
 
 import robocode.*;
-import robocode.Event;
 
 import java.awt.*;
 import java.util.Random;
@@ -12,25 +11,32 @@ import static robocode.util.Utils.normalRelativeAngleDegrees;
  * Xcore - Robô Avançado com Mira Travada e Fuga de Parede Corrigida
  */
 public class Xcore extends AdvancedRobot {
-    Random rand = new Random();
+    private final Random rand;
+    private boolean isStop = false;
+    private final double GIRO = 360;
+
+    public Xcore() {
+        this.rand = new Random();
+    }
 
     public void run() {
-        setColors(Color.BLUE, new Color(144, 190, 222), new Color(144, 243, 255));
+        this.setColors(Color.BLUE, new Color(144, 190, 222), new Color(144, 243, 255));
 
         //  Separa os movimentos do Corpo, Arma e Radar
-        setAdjustGunForRobotTurn(true);
-        setAdjustRadarForGunTurn(true);
+        this.setAdjustGunForRobotTurn(true);
+        this.setAdjustRadarForGunTurn(true);
 
         // Faz o radar dar um giro inicial completo de 360° para achar o primeiro inimigo
-        setTurnRadarRight(360);
+        this.setTurnRadarRight(360);
 
         // Loop principal do robô
         while (true) {
-            setAhead(this.rand.nextInt(70) + 80);
+            if (!this.isStop)
+                this.setAhead(this.rand.nextInt(70) + 80);
 
             this.rotationEscape();
 
-            execute();
+            this.execute();
         }
     }
 
@@ -39,18 +45,18 @@ public class Xcore extends AdvancedRobot {
         int left = 0;
 
         if (right > 25 && right < 50) {
-            setTurnRight(right);
-            left = this.rand.nextInt(70) + 80;
+            this.setTurnRight(right);
+            left = this.randomRoad();
 
             if (left > 85 && left < 125)
                 left = 0;
         }
 
         if (left != 0)
-            setTurnLeft(left);
+            this.setTurnLeft(left);
 
         if (getRadarTurnRemaining() == 0)
-            setTurnRadarRight(360);
+            this.setTurnRadarRight(GIRO);
     }
 
     /**
@@ -58,23 +64,37 @@ public class Xcore extends AdvancedRobot {
      */
     public void onScannedRobot(ScannedRobotEvent e) {
         // Calcula o ângulo absoluto do inimigo na arena
-        double anguloAbsolutoInimigo = getHeading() + e.getBearing();
+        double anguloAbsolutoInimigo = this.getHeading() + e.getBearing();
 
         double giroArma = normalRelativeAngleDegrees(anguloAbsolutoInimigo - getGunHeading());
         double giroRadar = normalRelativeAngleDegrees(anguloAbsolutoInimigo - getRadarHeading()) * 2;
 
-        setTurnGunRight(giroArma);
-        setTurnRadarRight(giroRadar);
+        this.setTurnGunRight(giroArma);
+        this.setTurnRadarRight(giroRadar);
 
-        if (e.getDistance() < 200) {
-            setFire(2.5);
-        } else {
-            setFire(1.5);
-        }
+        if (e.getDistance() < 100)
+            this.setFire(3.0);
+        else if (e.getDistance() < 200)
+            this.setFire(2.5);
+        else if (e.getDistance() < 300)
+            this.setFire(1.5);
+        else
+            this.setFire(1);
+
+        if (e.getDistance() < 50)
+            this.setAhead(this.randomRoad());
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
-        setBack(this.rand.nextInt(30) + 10);
+        this.onHit(e.getBearing());
+    }
+
+    public void onBulletHit(BulletHitEvent event) {
+        this.isStop = true;
+    }
+
+    public void onBulletMissed(BulletMissedEvent event) {
+        this.isStop = false;
     }
 
     /**
@@ -89,19 +109,25 @@ public class Xcore extends AdvancedRobot {
     }
 
     private void onHit(double bearing) {
+        this.isStop = false;
+
         double road = 90;
         double escape = 45;
 
         if (bearing > -90 && bearing < 90) {
-            setTurnRight(escape);
-            setBack(road);
+            this.setTurnRight(escape);
+            this.setBack(road);
         } else {
-            setTurnLeft(escape);
-            setAhead(road);
+            this.setTurnLeft(escape);
+            this.setAhead(road);
         }
     }
 
+    private int randomRoad() {
+        return this.rand.nextInt(70) + 80;
+    }
+
     public void onWin(WinEvent event) {
-        setTurnRight(360);
+        this.setTurnRight(GIRO);
     }
 }
