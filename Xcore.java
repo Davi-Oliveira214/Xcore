@@ -31,10 +31,13 @@ public class Xcore extends AdvancedRobot {
 
         // Loop principal do robô
         while (true) {
-            if (!this.isStop)
-                this.setAhead(this.rand.nextInt(70) + 80);
+            if (!this.isStop) {
+                this.setAhead(this.randomRoad());
+                this.rotationEscape();
+            }
 
-            this.rotationEscape();
+            if (this.getRadarTurnRemaining() == 0)
+                this.setTurnRadarRight(GIRO);
 
             this.execute();
         }
@@ -54,9 +57,6 @@ public class Xcore extends AdvancedRobot {
 
         if (left != 0)
             this.setTurnLeft(left);
-
-        if (getRadarTurnRemaining() == 0)
-            this.setTurnRadarRight(GIRO);
     }
 
     /**
